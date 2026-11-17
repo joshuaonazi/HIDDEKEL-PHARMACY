@@ -1,0 +1,16 @@
+# Dependencies and build output
+node_modules/
+dist/
+
+# Secrets: never commit these
+.env
+.env.*
+!.env.example
+
+# Upload packages and logs
+*.tgz
+*.log
+
+# Editor and system files
+.DS_Store
+Thumbs.db
