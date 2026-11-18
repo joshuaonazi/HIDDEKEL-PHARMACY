@@ -7,6 +7,7 @@ import productRoutes from './products.routes.js';
 import saleRoutes from './sales.routes.js';
 import settingsRoutes from './settings.routes.js';
 import userRoutes from './users.routes.js';
+import prescriptionRoutes from './prescriptions.routes.js';
 
 const router = Router();
 
@@ -21,6 +22,7 @@ router.use('/products', productRoutes);
 router.use('/sales', saleRoutes);
 router.use('/settings', settingsRoutes);
 router.use('/users', userRoutes);
+router.use('/prescriptions', prescriptionRoutes);
 // Next steps add: sales history and voids, /reports, /purchases
 
 export default router;

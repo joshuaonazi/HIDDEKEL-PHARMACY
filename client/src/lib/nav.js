@@ -8,6 +8,7 @@ import {
   ShoppingCart,
   Users,
   Warehouse,
+  ClipboardPlus,
 } from 'lucide-react'
 
 // roles: who may open the screen besides the admin. Leave it out for "everyone signed in".
@@ -15,8 +16,10 @@ import {
 // The server enforces permissions too; this only controls what the menu shows.
 export const NAV_ITEMS = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/sales', label: 'Point of Sale', icon: ShoppingCart },
-  { to: '/sales-history', label: 'Sales History', icon: Receipt },
+  { to: '/sales', label: 'Point of Sale', icon: ShoppingCart, roles: ['cashier', 'manager'] },
+  { to: '/waiting-prescriptions', label: 'Waiting Prescriptions', icon: ClipboardPlus, roles: ['cashier'] },
+  { to: '/prescriptions', label: 'Prescriptions', icon: ClipboardPlus, roles: ['manager', 'pharmacist'] },
+  { to: '/sales-history', label: 'Sales History', icon: Receipt, roles: ['cashier', 'manager'] },
   { to: '/products', label: 'Products', icon: Package },
   { to: '/categories', label: 'Categories', icon: LayoutGrid, roles: ['manager'] },
   { to: '/stock', label: 'Stock', icon: Warehouse, roles: ['manager'] },

@@ -11,6 +11,8 @@ import SalesPage from './features/sales/SalesPage.jsx'
 import UsersPage from './features/users/UsersPage.jsx'
 import SettingsPage from './features/settings/SettingsPage.jsx'
 import ComingSoon from './features/placeholder/ComingSoon.jsx'
+import PrescriptionsPage from './features/prescriptions/PrescriptionsPage.jsx'
+import WaitingPrescriptionsPage from './features/prescriptions/WaitingPrescriptionsPage.jsx'
 import { NAV_ITEMS } from './lib/nav.js'
 
 // Screens built so far; everything else shows the placeholder
@@ -21,6 +23,8 @@ const SCREENS = {
   '/sales-history': <SalesHistoryPage />,
   '/settings': <SettingsPage />,
   '/users': <UsersPage />,
+  '/prescriptions': <PrescriptionsPage />,
+  '/waiting-prescriptions': <WaitingPrescriptionsPage />,
 }
 
 export default function App() {

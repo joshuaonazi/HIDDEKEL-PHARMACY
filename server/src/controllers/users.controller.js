@@ -6,7 +6,7 @@ import { audit } from '../utils/audit.js';
 import { hashPassword } from '../utils/password.js';
 import { generateTempPassword } from '../utils/passwordPolicy.js';
 
-const ROLES = ['admin', 'manager', 'cashier'];
+const ROLES = ['admin', 'manager', 'cashier', 'pharmacist'];
 
 const fullName = z.string().trim().min(2, 'Enter the full name').max(100);
 const email = z.string().trim().toLowerCase().email('Enter a valid email address').max(200);
@@ -35,7 +35,7 @@ const COLUMNS = 'id, full_name, email, role, is_active, must_change_password, la
 export async function listUsers(req, res) {
   const { rows } = await query(
     `SELECT ${COLUMNS} FROM users WHERE pharmacy_id = $1
-      ORDER BY CASE role WHEN 'admin' THEN 0 WHEN 'manager' THEN 1 ELSE 2 END, lower(full_name)`,
+      ORDER BY CASE role WHEN 'admin' THEN 0 WHEN 'manager' THEN 1 WHEN 'pharmacist' THEN 2 ELSE 3 END, lower(full_name)`,
     [req.user.pharmacyId]
   );
   res.json({ users: rows.map(userOut) });

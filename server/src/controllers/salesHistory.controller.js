@@ -142,7 +142,7 @@ export async function voidSale(req, res) {
     await db.query('SELECT pg_advisory_xact_lock(hashtext($1))', [`sale:${pid}`]);
 
     const found = await db.query(
-      'SELECT receipt_no, status, total FROM sales WHERE id = $1 AND pharmacy_id = $2 FOR UPDATE',
+      'SELECT receipt_no, status, total, prescription_id FROM sales WHERE id = $1 AND pharmacy_id = $2 FOR UPDATE',
       [id, pid]
     );
     const s = found.rows[0];
@@ -157,6 +157,18 @@ export async function voidSale(req, res) {
       `UPDATE sales SET status = 'voided', void_reason = $1, voided_by = $2, voided_at = now() WHERE id = $3`,
       [reason, req.user.id, id]
     );
+    if (s.prescription_id) {
+      await db.query(
+        `UPDATE prescriptions SET status = 'pending', sale_id = NULL, dispensed_by = NULL,
+                dispensed_at = NULL, updated_at = now()
+         WHERE id = $1 AND pharmacy_id = $2 AND status = 'dispensed'`,
+        [s.prescription_id, pid]
+      );
+      await audit(db, req, 'prescription.reopened', 'prescription', s.prescription_id, {
+        reason,
+        voidedSaleId: id,
+      });
+    }
     await audit(db, req, 'sale.void', 'sale', id, {
       receiptNo: s.receipt_no,
       total: s.total,

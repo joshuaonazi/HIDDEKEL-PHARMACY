@@ -9,11 +9,11 @@ import { listSales, voidSale, voidSchema } from '../controllers/salesHistory.con
 const router = Router();
 router.use(requireAuth);
 
-// Every signed-in role may sell. Cashiers only see their own sales.
-router.get('/', asyncHandler(listSales));
-router.post('/quote', validate(quoteSchema), asyncHandler(quote));
-router.post('/', validate(saleSchema), asyncHandler(createSale));
-router.get('/:id', asyncHandler(getSale));
+// Cashiers and managers sell; admins also pass via requireRole. Pharmacists must not operate POS.
+router.get('/', requireRole('cashier', 'manager'), asyncHandler(listSales));
+router.post('/quote', requireRole('cashier', 'manager'), validate(quoteSchema), asyncHandler(quote));
+router.post('/', requireRole('cashier', 'manager'), validate(saleSchema), asyncHandler(createSale));
+router.get('/:id', requireRole('cashier', 'manager'), asyncHandler(getSale));
 
 // Voiding needs a manager or admin
 router.post('/:id/void', requireRole('manager'), validate(voidSchema), asyncHandler(voidSale));

@@ -12,15 +12,21 @@ export const ROLE_INFO = {
     label: 'Cashier',
     description: 'Cashiers sell, apply discounts, print receipts and look up products. They never see cost prices or profit.',
   },
+  pharmacist: {
+    label: 'Pharmacist',
+    description: 'Pharmacists create and manage prescriptions and look up product stock and selling prices.',
+  },
 }
 
-const ALL = ['admin', 'manager', 'cashier']
+const ALL = ['admin', 'manager', 'cashier', 'pharmacist']
 const STAFF = ['admin', 'manager']
 
 export const PERMISSIONS = [
   { label: 'Make sales and print receipts', roles: ALL },
   { label: 'Apply discounts', roles: ALL },
   { label: 'Look up products and stock', roles: ALL },
+  { label: 'Create, edit, cancel and repeat prescriptions', roles: ['admin', 'manager', 'pharmacist'] },
+  { label: 'Dispense waiting prescriptions', roles: ['admin', 'manager', 'cashier'] },
   { label: 'Add, edit and delete products', roles: STAFF },
   { label: 'Import products and stock from Excel', roles: STAFF },
   { label: 'Manage categories', roles: STAFF },

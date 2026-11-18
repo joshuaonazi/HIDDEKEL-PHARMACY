@@ -1,5 +1,6 @@
 import { Banknote, Pill, ShoppingCart, TrendingUp, TriangleAlert } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth.js'
+import { Link } from 'react-router-dom'
 
 const CARDS = [
   { label: "Today's Sales", icon: ShoppingCart, tone: 'bg-brand-100 text-brand-600' },
@@ -11,6 +12,19 @@ const CARDS = [
 export default function DashboardPage() {
   const { user } = useAuth()
   const firstName = user.fullName.split(/\s+/)[0]
+
+  if (user.role === 'pharmacist') {
+    return (
+      <div>
+        <h1 className="text-3xl font-extrabold tracking-tight text-ink">Pharmacist Workspace</h1>
+        <p className="mt-1 text-slate-600">Welcome back, {firstName}. Create prescriptions and send them to the cashiers.</p>
+        <Link to="/prescriptions"
+          className="mt-6 inline-flex rounded-xl bg-brand-500 px-5 py-3 font-bold text-white hover:bg-brand-600">
+          Open prescriptions
+        </Link>
+      </div>
+    )
+  }
 
   return (
     <div>

@@ -5,7 +5,7 @@ import Logo from '../common/Logo.jsx'
 import { useAuth } from '../../hooks/useAuth.js'
 import { NAV_ITEMS, canAccess } from '../../lib/nav.js'
 
-const ROLE_LABELS = { admin: 'Admin', manager: 'Manager', cashier: 'Cashier' }
+const ROLE_LABELS = { admin: 'Admin', manager: 'Manager', cashier: 'Cashier', pharmacist: 'Pharmacist' }
 
 function initialsOf(name = '') {
   return (

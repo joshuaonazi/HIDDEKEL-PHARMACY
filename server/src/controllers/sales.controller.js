@@ -30,6 +30,7 @@ export const saleSchema = quoteSchema.extend({
   amountTendered: z.number().min(0).max(1_000_000_000).nullable().optional(),
   rxConfirmed: z.boolean().default(false),
   clientRef: z.string().uuid().optional(),
+  prescriptionId: z.string().uuid().optional().nullable(),
 });
 
 // The same product scanned twice becomes one line
@@ -69,7 +70,7 @@ export async function quote(req, res) {
 
 export async function createSale(req, res) {
   const pid = req.user.pharmacyId;
-  const { discount, paymentMethod, amountTendered, rxConfirmed, clientRef } = req.body;
+  const { discount, paymentMethod, amountTendered, rxConfirmed, clientRef, prescriptionId } = req.body;
 
   const receipt = await withTransaction(async (db) => {
     // One sale at a time per pharmacy: keeps receipt numbers in order and stock counts exact
@@ -97,6 +98,30 @@ export async function createSale(req, res) {
       throw new HttpError(400, 'The amount received is less than the total');
     }
 
+    if (prescriptionId) {
+      if (!['admin', 'manager', 'cashier'].includes(req.user.role)) {
+        throw new HttpError(403, 'You do not have permission to dispense prescriptions');
+      }
+      const found = await db.query(
+        `SELECT id, status FROM prescriptions
+         WHERE id = $1 AND pharmacy_id = $2 FOR UPDATE`,
+        [prescriptionId, pid]
+      );
+      if (!found.rowCount) throw new HttpError(404, 'Prescription not found');
+      if (found.rows[0].status !== 'pending') throw new HttpError(409, 'This prescription is no longer waiting');
+
+      const expected = await db.query(
+        `SELECT product_id, quantity FROM prescription_items
+         WHERE prescription_id = $1 AND pharmacy_id = $2`,
+        [prescriptionId, pid]
+      );
+      const actual = mergeItems(req.body.items);
+      const matches =
+        expected.rows.length === actual.length &&
+        expected.rows.every((e) => actual.some((a) => a.productId === e.product_id && a.quantity === e.quantity));
+      if (!matches) throw new HttpError(400, 'The sale must contain the prescription drugs and quantities exactly');
+    }
+
     const seq = await db.query(
       `SELECT COUNT(*) + 1 AS n, to_char(now() AT TIME ZONE $2, 'YYYYMMDD') AS d
          FROM sales
@@ -107,10 +132,10 @@ export async function createSale(req, res) {
 
     const sale = await db.query(
       `INSERT INTO sales (pharmacy_id, receipt_no, cashier_id, subtotal, discount, tax, total, payment_method,
-                          amount_tendered, rx_confirmed, client_ref)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id`,
+                          amount_tendered, rx_confirmed, client_ref, prescription_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING id`,
       [pid, receiptNo, req.user.id, totals.subtotal, totals.discount, totals.tax, totals.total, paymentMethod,
-        paymentMethod === 'cash' ? (amountTendered ?? totals.total) : null, rxConfirmed, clientRef || null]
+        paymentMethod === 'cash' ? (amountTendered ?? totals.total) : null, rxConfirmed, clientRef || null, prescriptionId || null]
     );
     const saleId = sale.rows[0].id;
 
@@ -124,6 +149,19 @@ export async function createSale(req, res) {
         );
         await db.query('UPDATE batches SET qty_remaining = qty_remaining - $1 WHERE id = $2', [seg.quantity, seg.batchId]);
       }
+    }
+
+    if (prescriptionId) {
+      await db.query(
+        `UPDATE prescriptions SET status = 'dispensed', sale_id = $1, dispensed_by = $2,
+                dispensed_at = now(), updated_at = now()
+         WHERE id = $3 AND pharmacy_id = $4`,
+        [saleId, req.user.id, prescriptionId, pid]
+      );
+      await audit(db, req, 'prescription.dispense', 'prescription', prescriptionId, {
+        saleId,
+        receiptNo,
+      });
     }
 
     await audit(db, req, 'sale.create', 'sale', saleId, {

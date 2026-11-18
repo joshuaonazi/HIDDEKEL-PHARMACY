@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import {
   Banknote,
   Barcode,
@@ -51,6 +52,7 @@ function ModeButton({ active, icon: Icon, label, onClick }) {
 }
 
 export default function SalesPage() {
+  const location = useLocation()
   const inputRef = useRef(null)
   const attemptRef = useRef({ sig: '', ref: '' })
 
@@ -74,9 +76,48 @@ export default function SalesPage() {
   const [saleError, setSaleError] = useState('')
   const [receipt, setReceipt] = useState(null)
   const [cameraOpen, setCameraOpen] = useState(false)
+  const [prescriptionId, setPrescriptionId] = useState(location.state?.prescriptionId || null)
+  const [prescriptionLoaded, setPrescriptionLoaded] = useState(false)
 
   const debouncedQuery = useDebounce(query, 300)
   const modalOpen = Boolean(receipt) || cameraOpen
+
+  useEffect(() => {
+    const prescription = location.state?.prescriptionItems
+    if (!prescription || prescriptionLoaded) return
+    let active = true
+    async function loadPrescription() {
+      for (const item of prescription) {
+        try {
+          const product = await productsApi.get(item.productId)
+          if (!active) return
+          setCart((current) => {
+            const existing = current.find((c) => c.productId === item.productId)
+            if (existing) {
+              return current.map((c) => c.productId === item.productId
+                ? { ...c, qty: item.quantity }
+                : c)
+            }
+            return [...current, {
+              productId: product.id,
+              label: nameOf(product),
+              requiresPrescription: product.requiresPrescription,
+              sellable: product.stock,
+              hintPrice: product.batches?.[0]?.sellingPrice ?? null,
+              qty: item.quantity,
+            }]
+          })
+        } catch {
+          flash('error', 'Could not load every drug from the waiting prescription')
+          setPrescriptionId(null)
+          return
+        }
+      }
+      if (active) setPrescriptionLoaded(true)
+    }
+    loadPrescription()
+    return () => { active = false }
+  }, [location.state, prescriptionLoaded, flash])
 
   const flash = useCallback((type, text) => {
     setNotice({ type, text })
@@ -314,6 +355,7 @@ export default function SalesPage() {
         amountTendered: payment === 'cash' && receivedNum !== null ? receivedNum : null,
         rxConfirmed,
         clientRef: attemptRef.current.ref,
+        prescriptionId,
       })
       beep('ok')
       setReceipt(sale)

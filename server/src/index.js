@@ -10,7 +10,7 @@ async function start() {
     console.error('Could not connect to the database:', err.message);
     process.exit(1);
   }
-  app.listen(env.port, () => console.log(`API running on http://localhost:${env.port}`));
+  app.listen(env.port, '127.0.0.1', () => console.log(`API running on http://127.0.0.1:${env.port}`));
 }
 
 start();

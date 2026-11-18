@@ -1,0 +1,20 @@
+[Unit]
+Description=Hiddekel Pharmacy API
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+User=hiddekel
+Group=hiddekel
+WorkingDirectory=/opt/hiddekel-pharmacy/server
+EnvironmentFile=/etc/hiddekel/hiddekel.env
+ExecStart=/usr/bin/node src/index.js
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target
