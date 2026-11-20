@@ -31,7 +31,7 @@ const ROLE_STYLE = {
   admin: { icon: Crown, className: 'bg-brand-100 text-brand-800' },
   manager: { icon: Briefcase, className: 'bg-violet-100 text-violet-700' },
   cashier: { icon: Store, className: 'bg-orange-100 text-orange-700' },
-  pharmacist: { icon: CheckSquare, className: 'bg-cyan-100 text-cyan-700' },
+  pharmacist: { icon: Stethoscope, className: 'bg-sky-100 text-sky-700' },
 }
 const AVATARS = ['bg-teal-600', 'bg-sky-600', 'bg-violet-600', 'bg-amber-600', 'bg-rose-600', 'bg-indigo-600']
 const avatarFor = (name) => AVATARS[[...name].reduce((s, c) => s + c.charCodeAt(0), 0) % AVATARS.length]
