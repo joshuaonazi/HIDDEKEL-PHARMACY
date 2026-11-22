@@ -1,49 +1,68 @@
-name: Deploy to production VPS
+name: Deploy to the server
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   workflow_dispatch:
+
+# One deploy at a time
+concurrency:
+  group: deploy
+  cancel-in-progress: false
 
 permissions:
   contents: read
 
-concurrency:
-  group: hiddekel-production-deploy
-  cancel-in-progress: false
+defaults:
+  run:
+    shell: bash
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - name: Deploy latest main on the VPS
-        env:
-          VPS_HOST: ${{ secrets.VPS_HOST }}
-          VPS_USER: ${{ secrets.VPS_USER }}
-          VPS_SSH_PORT: ${{ secrets.VPS_SSH_PORT }}
-          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
-          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+
+      - name: Build the website
+        working-directory: client
         run: |
-          set -Eeuo pipefail
+          npm ci
+          npm run build
 
-          : "${VPS_HOST:?Add the VPS_HOST repository secret}"
-          : "${VPS_USER:?Add the VPS_USER repository secret}"
-          : "${VPS_SSH_KEY:?Add the VPS_SSH_KEY repository secret}"
-          : "${VPS_KNOWN_HOSTS:?Add the VPS_KNOWN_HOSTS repository secret}"
+      - name: Set up the deploy key
+        env:
+          DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ci_key
+          chmod 600 ~/.ssh/ci_key
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
 
-          ssh_dir="$HOME/.ssh"
-          install -m 700 -d "$ssh_dir"
-          printf '%s\n' "$VPS_SSH_KEY" > "$ssh_dir/id_ed25519"
-          printf '%s\n' "$VPS_KNOWN_HOSTS" > "$ssh_dir/known_hosts"
-          chmod 600 "$ssh_dir/id_ed25519" "$ssh_dir/known_hosts"
+      # The server code goes first, because the new screens may need it
+      - name: Update the API
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+        run: |
+          tar --exclude=node_modules --exclude=.env -czf - -C server . \
+            | ssh -i ~/.ssh/ci_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes "deploy@$DEPLOY_HOST" api
 
-          ssh_port="${VPS_SSH_PORT:-22}"
-          ssh \
-            -i "$ssh_dir/id_ed25519" \
-            -p "$ssh_port" \
-            -o BatchMode=yes \
-            -o IdentitiesOnly=yes \
-            -o StrictHostKeyChecking=yes \
-            "$VPS_USER@$VPS_HOST" \
-            'bash /opt/hiddekel-pharmacy/deploy/deploy.sh'
+      - name: Update the website
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+        run: |
+          tar -czf - -C client/dist . \
+            | ssh -i ~/.ssh/ci_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes "deploy@$DEPLOY_HOST" site
+
+      - name: Check the live site
+        run: |
+          sleep 5
+          curl -fsS https://hiddekkelpharmacy.com/api/health
