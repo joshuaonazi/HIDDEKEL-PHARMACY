@@ -17,6 +17,7 @@ import {
   UserCheck,
   UserX,
   Users,
+  Stethoscope,
 } from 'lucide-react'
 import ConfirmDialog from '../../components/ui/ConfirmDialog.jsx'
 import { errorMessage } from '../../api/client.js'
