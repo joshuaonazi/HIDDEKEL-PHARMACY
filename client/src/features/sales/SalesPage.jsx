@@ -82,6 +82,11 @@ export default function SalesPage() {
   const debouncedQuery = useDebounce(query, 300)
   const modalOpen = Boolean(receipt) || cameraOpen
 
+  const flash = useCallback((type, text) => {
+    setNotice({ type, text })
+    beep(type === 'error' ? 'error' : 'ok')
+  }, [])
+
   useEffect(() => {
     const prescription = location.state?.prescriptionItems
     if (!prescription || prescriptionLoaded) return
@@ -119,10 +124,6 @@ export default function SalesPage() {
     return () => { active = false }
   }, [location.state, prescriptionLoaded, flash])
 
-  const flash = useCallback((type, text) => {
-    setNotice({ type, text })
-    beep(type === 'error' ? 'error' : 'ok')
-  }, [])
 
   const focusInput = useCallback(() => inputRef.current?.focus(), [])
 
